@@ -2,10 +2,10 @@ const quais = require("quais");
 
 function printAddressTable(addresses, coin) {
   if (addresses.length === 0) {
-    console.log("No addresses found");
+    console.log(`No ${coin} addresses found`);
     return;
   }
-  console.log(`\n${coin} Addresses with balance:`);
+  console.log(`\n${coin} addresses with balance:`);
   const addressTable = addresses.map((addr) => ({
     PubKey: addr.pubKey,
     Address: addr.address,
