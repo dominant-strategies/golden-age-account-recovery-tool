@@ -1,10 +1,11 @@
 const quais = require("quais");
 
-function printAddressTable(addresses) {
+function printAddressTable(addresses, coin) {
   if (addresses.length === 0) {
     console.log("No addresses found");
     return;
   }
+  console.log(`\n${coin} Addresses with balance:`);
   const addressTable = addresses.map((addr) => ({
     PubKey: addr.pubKey,
     Address: addr.address,
@@ -34,7 +35,8 @@ async function main() {
   try {
     // Compute the address from the public key
     const mnemonic = quais.Mnemonic.fromPhrase(seedPhrase);
-    const wallet = quais.QiHDWallet.fromMnemonic(mnemonic);
+    const qiWallet = quais.QiHDWallet.fromMnemonic(mnemonic);
+    const quaiWallet = quais.QuaiHDWallet.fromMnemonic(mnemonic);
     const provider = new quais.JsonRpcProvider(
       "https://rpc.quai.network",
       undefined,
@@ -42,29 +44,50 @@ async function main() {
     );
     const limit = 100;
 
-    const balancePromises = [];
-    const addresses = [];
+    const qiBalancePromises = [];
+    const quaiBalancePromises = [];
+    const qiAddresses = [];
+    const quaiAddresses = [];
     // check balance of first 100 addresses
     for (let i = 0; i < limit; i++) {
-      const address = await wallet.getNextAddress(0, quais.Zone.Cyprus1);
-      addresses.push(address);
-      balancePromises.push(provider.getBalance(address.address));
+      const qiAddress = await qiWallet.getNextAddress(0, quais.Zone.Cyprus1);
+      const quaiAddress = await quaiWallet.getNextAddress(
+        0,
+        quais.Zone.Cyprus1
+      );
+      qiAddresses.push(qiAddress);
+      quaiAddresses.push(quaiAddress);
+      qiBalancePromises.push(provider.getBalance(qiAddress.address));
+      quaiBalancePromises.push(provider.getBalance(quaiAddress.address));
     }
 
-    const balances = await Promise.all(balancePromises);
-    const hasBalance = [];
+    const qiBalances = await Promise.all(qiBalancePromises);
+    const quaiBalances = await Promise.all(quaiBalancePromises);
 
-    for (let i = 0; i < balances.length; i++) {
-      if (balances[i] > 0) {
-        hasBalance.push(addresses[i]);
+    const qiHasBalance = [];
+    const quaiHasBalance = [];
+
+    for (let i = 0; i < qiBalances.length; i++) {
+      if (qiBalances[i] > 0) {
+        qiHasBalance.push(qiAddresses[i]);
+      }
+      if (quaiBalances[i] > 0) {
+        quaiHasBalance.push(quaiAddresses[i]);
       }
     }
 
-    const addressInfo = hasBalance.map((addressInfo) => {
-      const privateKey = wallet.getPrivateKey(addressInfo.address);
+    const qiAddressInfo = qiHasBalance.map((addressInfo) => {
+      const privateKey = qiWallet.getPrivateKey(addressInfo.address);
       return { ...addressInfo, privateKey };
     });
-    printAddressTable(addressInfo);
+
+    printAddressTable(qiAddressInfo, "Qi");
+
+    const quaiAddressInfo = quaiHasBalance.map((addressInfo) => {
+      const privateKey = quaiWallet.getPrivateKey(addressInfo.address);
+      return { ...addressInfo, privateKey };
+    });
+    printAddressTable(quaiAddressInfo, "Quai");
   } catch (error) {
     console.error("Error computing address:", error.message);
     process.exit(1);
